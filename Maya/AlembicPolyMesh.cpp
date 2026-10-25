@@ -247,8 +247,12 @@ MStatus AlembicPolyMesh::Save(double time, unsigned int timeIndex,
       {
         ESS_PROFILE_SCOPE("AlembicPolyMesh::Save FaceSets FACESET_ attribute");
         MStringArray pluginsAttributes;
-        MGlobal::executeCommand("listAttr -ud " + node.name(),
-                                pluginsAttributes);  // only list attribute
+        const MStatus listStatus = MGlobal::executeCommand(
+            "listAttr -ud \"" + path.fullPathName() + "\"", pluginsAttributes);
+        if (!listStatus) {
+          return listStatus;
+        }
+        // only list attributes
         // created by plugins!
         // "FACESET_" are some of
         // them!

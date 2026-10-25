@@ -58,3 +58,13 @@ These checks do **not** validate Alembic file interchange, mesh attachment,
 Evaluation Manager, particles, dynamic topology or interactive Viewport 2.0.
 The old dependencies and deprecated Maya APIs remain; this is a build/load
 milestone, not a production-ready port.
+
+The duplicate-name export regression can be run separately:
+
+```powershell
+& 'C:/Program Files/Autodesk/Maya2024/bin/mayapy.exe' -B tests/maya/test_export_duplicate_names.py --plugin build/maya2024/stage/Module/plug-ins/MayaExocortexAlembic.mll
+```
+
+It exports two static meshes with the same shape leaf name and verifies their
+geometry and explicit face sets. HDF5 is read with Crate; Ogawa is imported with
+Maya's native AbcImport. This does not exercise an animated production asset.
