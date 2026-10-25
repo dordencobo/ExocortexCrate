@@ -1,7 +1,7 @@
 import traceback
 
 import maya.cmds as cmds
-import _functions as fnt
+from . import _functions as fnt
 
 """  Attach to existing """
 
