@@ -175,6 +175,7 @@ class AlembicCurvesDeformNode : public AlembicObjectDeformNode {
 };
 
 class AlembicCurvesLocatorNode : public AlembicObjectLocatorNode {
+  friend class AlembicCurvesDrawOverride;
  public:
   AlembicCurvesLocatorNode();
   virtual ~AlembicCurvesLocatorNode();
@@ -202,6 +203,7 @@ class AlembicCurvesLocatorNode : public AlembicObjectLocatorNode {
   MString mIdentifier;
   AbcG::ICurvesSchema mSchema;
   int mSent;
+  AbcG::ICurves mObj;
   unsigned int mNbCurves;
   unsigned int mNbVertices;
   std::vector<unsigned int> mIndices;

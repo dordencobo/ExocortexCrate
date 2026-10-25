@@ -749,12 +749,6 @@ MStatus AlembicSubDDeformNode::deform(MDataBlock& dataBlock, MItGeometry& iter,
   SampleInfo sampleInfo = getSampleInfo(inputTime, mSchema.getTimeSampling(),
                                         mSchema.getNumSamples());
 
-  // check if we have to do this at all
-  if (mLastSampleInfo.floorIndex == sampleInfo.floorIndex &&
-      mLastSampleInfo.ceilIndex == sampleInfo.ceilIndex) {
-    return MStatus::kSuccess;
-  }
-
   mLastSampleInfo = sampleInfo;
 
   // access the camera values

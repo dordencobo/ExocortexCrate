@@ -1,11 +1,13 @@
 import traceback
 
 import maya.cmds as cmds
-import _functions as fnt
+from . import _functions as fnt
 
 """  Attach to existing """
 
-def attachTimeAndFile(node, jobInfo, isConstant=False):
+def attachTimeAndFile(node, jobInfo, isConstant=False, identifier=None):
+	if identifier is not None:
+		cmds.setAttr(node+".identifier", identifier, type="string")
 	connAttr = cmds.connectionInfo(node+".inTime", sfd=True)
 	if connAttr == "" and not isConstant:
 		cmds.connectAttr(jobInfo.timeCtrl+".outTime", node+".inTime")
@@ -25,7 +27,7 @@ def attachXform(name, identifier, jobInfo, isConstant=False):
 			# already receiving transformation from another node!
 			conX = conX[0]
 			if cmds.objectType(conX) == "ExocortexAlembicXform":
-				attachTimeAndFile(conX, jobInfo, isConstant)
+				attachTimeAndFile(conX, jobInfo, isConstant, identifier)
 				return [conX]
 			else:
 				return ["!", "Cannot attach Xform to " + name + ", it's attach to a node that is not an \"ExocortexAlembicXform\""]
@@ -37,7 +39,7 @@ def attachXform(name, identifier, jobInfo, isConstant=False):
 		cmds.connectAttr(newXform+".scale", 		name+".scale")
 		cmds.connectAttr(newXform+".outVisibility",	name+".visibility")
 
-		attachTimeAndFile(newXform, jobInfo, isConstant)
+		attachTimeAndFile(newXform, jobInfo, isConstant, identifier)
 	except:
 		return ["!", traceback.format_exc()]
 	finally:
@@ -53,13 +55,13 @@ def attachPolyMesh(name, identifier, jobInfo, isConstant=False):
 		conX = cmds.listConnections(name, d=False, type="ExocortexAlembicPolyMeshDeform")
 		if conX: # it's already attached to a deform, simply change the file reference
 			polyObj = conX[0]
-			attachTimeAndFile(polyObj, jobInfo, isConstant)
+			attachTimeAndFile(polyObj, jobInfo, isConstant, identifier)
 			return [polyObj]
 
 		# create deformer, and attach time and file
 		newDform = cmds.deformer(name, type="ExocortexAlembicPolyMeshDeform")[0]
 		cmds.setAttr(newDform+".identifier", identifier, type="string")
-		attachTimeAndFile(newDform, jobInfo, isConstant)
+		attachTimeAndFile(newDform, jobInfo, isConstant, identifier)
 
 		if jobInfo.useFaceSets:
 			cmds.ExocortexAlembic_createFaceSets(f=cmds.getAttr(jobInfo.filenode+".outFileName"), i=identifier, o=name)
@@ -75,7 +77,7 @@ def attachCamera(name, identifier, jobInfo, isConstant=False):
 		conX = cmds.listConnections(name, d=False, type="ExocortexAlembicCamera")
 		if conX:
 			camObj = conX[0]
-			attachTimeAndFile(camObj, jobInfo, isConstant)
+			attachTimeAndFile(camObj, jobInfo, isConstant, identifier)
 			return [camObj]
 
 		reader = cmds.createNode("ExocortexAlembicCamera")
@@ -86,10 +88,12 @@ def attachCamera(name, identifier, jobInfo, isConstant=False):
 		cmds.connectAttr(reader+".verticalFilmAperture", name+".verticalFilmAperture")
 		cmds.connectAttr(reader+".horizontalFilmOffset", name+".horizontalFilmOffset")
 		cmds.connectAttr(reader+".verticalFilmOffset", name+".verticalFilmOffset")
+		cmds.connectAttr(reader+".nearClippingPlane", name+".nearClipPlane")
+		cmds.connectAttr(reader+".farClippingPlane", name+".farClipPlane")
 		cmds.connectAttr(reader+".fStop", name+".fStop")
 		cmds.connectAttr(reader+".shutterAngle", name+".shutterAngle")
 
-		attachTimeAndFile(reader, jobInfo, isConstant)
+		attachTimeAndFile(reader, jobInfo, isConstant, identifier)
 	except:
 		return ["!", traceback.format_exc()]
 	finally:
@@ -103,27 +107,15 @@ def attachCurves(name, identifier, jobInfo, isConstant=False):
 				cmds.listConnections(name+".create", d=False, type="ExocortexAlembicCurves"))
 		if conX:
 			curObj = conX[0]
-			attachTimeAndFile(curObj, jobInfo, isConstant)
+			attachTimeAndFile(curObj, jobInfo, isConstant, identifier)
 			return [curObj]
 
 		# create deformer, and attach time and file
 		newDform = cmds.deformer(name, type="ExocortexAlembicCurvesDeform")[0]
 		cmds.setAttr(newDform+".identifier", identifier, type="string")
-		attachTimeAndFile(newDform, jobInfo, isConstant)
+		attachTimeAndFile(newDform, jobInfo, isConstant, identifier)
 
-		# get curObj new "output" attribute connection
-		conX = cmds.listConnections(name+".create", d=False, type="ExocortexAlembicCurvesDeform")
-		if conX:
-			curObj = conX[0]
-			originalCur = cmds.connectionInfo(curObj+".output", sfd=True).split('.')[0]
-
-			cmds.delete(curObj)
-			curObj = cmds.createNode("ExocortexAlembicCurves")
-			attachTimeAndFile(curObj, jobInfo, isConstant)
-
-			cmds.connectAttr(curObj+".outCurve", originalCur+".create")
-			cmds.connectAttr(jobInfo.filenode+".outFileName", curObj+".fileName")
-			cmds.setAttr(curObj+".identifier", identifier, type="string")
+		curObj = newDform
 	except:
 		return ["!", traceback.format_exc()]
 	finally:
@@ -136,7 +128,9 @@ def attachPoints(name, identifier, jobInfo, isConstant=False):
 		conX = cmds.listConnections(name, d=False, type="ExocortexAlembicPoints")
 		if conX:
 			ptsObj = conX[0]
-			attachTimeAndFile(ptsObj, jobInfo, isConstant)
+			attachTimeAndFile(ptsObj, jobInfo, isConstant, identifier)
+			# Particle queries can reuse the current simulation state at the same frame.
+			cmds.dgeval(ptsObj+".output[0]")
 			return [ptsObj]
 
 		reader = cmds.createNode("ExocortexAlembicPoints")
@@ -149,7 +143,7 @@ def attachPoints(name, identifier, jobInfo, isConstant=False):
 		cmds.connectAttr(jobInfo.timeCtrl+".outTime", name+".currentTime")
 		cmds.setAttr(name+".conserve", 0)
 
-		attachTimeAndFile(reader, jobInfo, isConstant)
+		attachTimeAndFile(reader, jobInfo, isConstant, identifier)
 	except:
 		return ["!", traceback.format_exc()]
 	finally:

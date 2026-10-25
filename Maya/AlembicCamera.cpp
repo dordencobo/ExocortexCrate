@@ -444,10 +444,10 @@ MStatus AlembicCameraNode::compute(const MPlug& plug, MDataBlock& dataBlock)
       .set(horizontalAperture / 2.54);
   dataBlock.outputValue(mOutVerticalApertureAttr).set(verticalAperture / 2.54);
   dataBlock.outputValue(mOutHorizontalOffsetAttr).set(horizontalOffset / 2.54);
-  dataBlock.outputValue(mOutHorizontalOffsetAttr).set(verticalOffset / 2.54);
+  dataBlock.outputValue(mOutVerticalOffsetAttr).set(verticalOffset / 2.54);
   dataBlock.outputValue(mOutNearClippingAttr).set(nearClipping);
   dataBlock.outputValue(mOutFarClippingAttr).set(farClipping);
-  dataBlock.outputValue(mOutFStopAttr).set(farClipping);
+  dataBlock.outputValue(mOutFStopAttr).set(fStop);
   dataBlock.outputValue(mOutShutterAngleAttr)
       .set(360.0 * (shutterClose - shutterOpen) /
            MTime(1.0, MTime::kSeconds).as(MTime::uiUnit()));
@@ -459,7 +459,7 @@ MStatus AlembicCameraNode::compute(const MPlug& plug, MDataBlock& dataBlock)
   dataBlock.outputValue(mOutHorizontalApertureAttr).setClean();
   dataBlock.outputValue(mOutVerticalApertureAttr).setClean();
   dataBlock.outputValue(mOutHorizontalOffsetAttr).setClean();
-  dataBlock.outputValue(mOutHorizontalOffsetAttr).setClean();
+  dataBlock.outputValue(mOutVerticalOffsetAttr).setClean();
   dataBlock.outputValue(mOutNearClippingAttr).setClean();
   dataBlock.outputValue(mOutFarClippingAttr).setClean();
   dataBlock.outputValue(mOutFStopAttr).setClean();

@@ -2,7 +2,7 @@ import traceback
 
 import maya.cmds as cmds
 import maya.OpenMayaMPx as apix
-import _functions as fnt
+from . import _functions as fnt
 
 """ Import module of Exocortex Crate """
 
@@ -110,6 +110,8 @@ def importCamera(name, identifier, jobInfo, parentXform=None, isConstant=False):
 		cmds.connectAttr(reader+".verticalFilmAperture", shape+".verticalFilmAperture")
 		cmds.connectAttr(reader+".horizontalFilmOffset", shape+".horizontalFilmOffset")
 		cmds.connectAttr(reader+".verticalFilmOffset", shape+".verticalFilmOffset")
+		cmds.connectAttr(reader+".nearClippingPlane", shape+".nearClipPlane")
+		cmds.connectAttr(reader+".farClippingPlane", shape+".farClipPlane")
 		cmds.connectAttr(reader+".fStop", shape+".fStop")
 		cmds.connectAttr(reader+".shutterAngle", shape+".shutterAngle")
 
@@ -158,7 +160,7 @@ def importCurves(name, identifier, jobInfo, parentXform=None, isConstant=False, 
 
 		shape  = fnt.alembicCreateNode(name, "nurbsCurve", parentXform)
 		cmds.connectAttr(topoReader+".outCurve[0]", shape+".create")
-		for curve in xrange(1, nbCurves):
+		for curve in range(1, nbCurves):
 			shape  = fnt.alembicCreateNode(name + "_" + str(curve), "nurbsCurve", parentXform)
 			cmds.connectAttr(topoReader+".outCurve[" + str(curve) + "]", shape+".create")
 

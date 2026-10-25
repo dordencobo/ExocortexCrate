@@ -14,12 +14,19 @@
 #include "AlembicXform.h"
 //#include "AlembicNurbs.h"
 #include <maya/MDGMessage.h>
+#include <maya/MCallbackIdArray.h>
 #include <maya/MFnDependencyNode.h>
 #include <maya/MFnPlugin.h>
 #include <maya/MFnStringData.h>
 #include <maya/MPlug.h>
 #include "AlembicValidateNameCmd.h"
 #include "MetaData.h"
+#if MAYA_API_VERSION >= 20240000
+#include "AlembicCurvesDrawOverride.h"
+#include <maya/MDrawRegistry.h>
+static const MString curvesDrawClassification("drawdb/geometry/ExocortexAlembicCurvesLocator");
+static const MString curvesDrawRegistrant("ExocortexCrateCurves");
+#endif
 
 // IDs issues for this plugin are:
 // 0x0011A100 - 0x0011A1FF
@@ -39,6 +46,7 @@ const MTypeId mCurvesLocatorNodeId(0x0011A111);
 static MCallbackId deleteAllArchivesCallbackOnNewId = 0;
 static MCallbackId deleteAllArchivesCallbackOnOpenId = 0;
 static MCallbackId deleteAllArchivesCallbackOnExitId = 0;
+static MCallbackIdArray nodeRemovedCallbackIds;
 static void deleteAllArchivesCallback(void *clientData)
 {
   preDestructAllNodes();
@@ -168,28 +176,31 @@ EC_EXPORT MStatus initializePlugin(MObject obj)
   status = plugin.registerNode(
       "ExocortexAlembicCurvesLocator", mCurvesLocatorNodeId,
       &AlembicCurvesLocatorNode::creator, &AlembicCurvesLocatorNode::initialize,
-      MPxNode::kLocatorNode);
+      MPxNode::kLocatorNode
+#if MAYA_API_VERSION >= 20240000
+      , &curvesDrawClassification
+#endif
+      );
+#if MAYA_API_VERSION >= 20240000
+  if (!status) return status;
+  status = MHWRender::MDrawRegistry::registerDrawOverrideCreator(
+      curvesDrawClassification, curvesDrawRegistrant, AlembicCurvesDrawOverride::creator);
+  if (!status) return status;
+#endif
 
-  MDGMessage::addNodeRemovedCallback(removeExocortexAlembicNode,
-                                     "ExocortexAlembicXform", NULL, &status);
-  MDGMessage::addNodeRemovedCallback(removeExocortexAlembicNode,
-                                     "ExocortexAlembicCamera", NULL, &status);
-  MDGMessage::addNodeRemovedCallback(removeExocortexAlembicNode,
-                                     "ExocortexAlembicPolyMesh", NULL, &status);
-  MDGMessage::addNodeRemovedCallback(removeExocortexAlembicNode,
-                                     "ExocortexAlembicSubD", NULL, &status);
-  MDGMessage::addNodeRemovedCallback(removeExocortexAlembicNode,
-                                     "ExocortexAlembicPolyMeshDeform", NULL,
-                                     &status);
-  MDGMessage::addNodeRemovedCallback(
-      removeExocortexAlembicNode, "ExocortexAlembicSubDDeform", NULL, &status);
-  MDGMessage::addNodeRemovedCallback(removeExocortexAlembicNode,
-                                     "ExocortexAlembicPoints", NULL, &status);
-  MDGMessage::addNodeRemovedCallback(removeExocortexAlembicNode,
-                                     "ExocortexAlembicCurves", NULL, &status);
-  MDGMessage::addNodeRemovedCallback(removeExocortexAlembicNode,
-                                     "ExocortexAlembicCurvesDeform", NULL,
-                                     &status);
+  const char *readerTypes[] = {
+      "ExocortexAlembicXform", "ExocortexAlembicCamera",
+      "ExocortexAlembicPolyMesh", "ExocortexAlembicSubD",
+      "ExocortexAlembicPolyMeshDeform", "ExocortexAlembicSubDDeform",
+      "ExocortexAlembicPoints", "ExocortexAlembicCurves",
+      "ExocortexAlembicCurvesDeform"};
+  for (unsigned int i = 0; i < sizeof(readerTypes) / sizeof(readerTypes[0]); ++i) {
+    MCallbackId id = MDGMessage::addNodeRemovedCallback(
+        removeExocortexAlembicNode, readerTypes[i], NULL, &status);
+    if (status) {
+      nodeRemovedCallbackIds.append(id);
+    }
+  }
 
   // Load the menu!
   MString cmd = "source \"menu.mel\"; exocortexAlembicLoadMenu(\"" +
@@ -240,11 +251,21 @@ EC_EXPORT MStatus uninitializePlugin(MObject obj)
     deleteAllArchivesCallbackOnExitId = 0;
   }
 
+  MMessage::removeCallbacks(nodeRemovedCallbackIds);
+  nodeRemovedCallbackIds.clear();
+
   status = plugin.deregisterCommand("ExocortexAlembic_export");
-  status = plugin.deregisterCommand("ExocortexAlembic_getInfo");
+  status = plugin.deregisterCommand("ExocortexAlembic_import");
   status = plugin.deregisterCommand("ExocortexAlembic_resolvePath");
   status = plugin.deregisterCommand("ExocortexAlembic_createMetaData");
   status = plugin.deregisterCommand("ExocortexAlembic_createFaceSets");
+  status = plugin.deregisterCommand("ExocortexAlembic_assignFaceSets");
+  status = plugin.deregisterCommand("ExocortexAlembic_postImportPoints");
+  status = plugin.deregisterCommand("ExocortexAlembic_profileBegin");
+  status = plugin.deregisterCommand("ExocortexAlembic_profileEnd");
+  status = plugin.deregisterCommand("ExocortexAlembic_profileStats");
+  status = plugin.deregisterCommand("ExocortexAlembic_profileReset");
+  status = plugin.deregisterCommand("ExocortexAlembic_meshToSubdiv");
 
   status = plugin.deregisterNode(mTimeControlNodeId);
   status = plugin.deregisterNode(mFileNodeId);
@@ -257,6 +278,11 @@ EC_EXPORT MStatus uninitializePlugin(MObject obj)
   status = plugin.deregisterNode(mPointsNodeId);
   status = plugin.deregisterNode(mCurvesNodeId);
   status = plugin.deregisterNode(mCurvesDeformNodeId);
+#if MAYA_API_VERSION >= 20240000
+  status = MHWRender::MDrawRegistry::deregisterDrawOverrideCreator(
+      curvesDrawClassification, curvesDrawRegistrant);
+  if (!status) return status;
+#endif
   status = plugin.deregisterNode(mCurvesLocatorNodeId);
 
   return status;

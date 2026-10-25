@@ -711,12 +711,6 @@ MStatus AlembicCurvesDeformNode::deform(MDataBlock &dataBlock,
   SampleInfo sampleInfo = getSampleInfo(inputTime, mSchema.getTimeSampling(),
                                         mSchema.getNumSamples());
 
-  // check if we have to do this at all
-  if (mLastSampleInfo.floorIndex == sampleInfo.floorIndex &&
-      mLastSampleInfo.ceilIndex == sampleInfo.ceilIndex) {
-    return MStatus::kSuccess;
-  }
-
   mLastSampleInfo = sampleInfo;
 
   // access the camera values
@@ -823,6 +817,7 @@ AlembicCurvesLocatorNode::AlembicCurvesLocatorNode()
 void AlembicCurvesLocatorNode::PreDestruction()
 {
   mSchema.reset();
+  mObj.reset();
   delRefArchive(mFileName);
   mFileName.clear();
 }
@@ -890,7 +885,7 @@ MStatus AlembicCurvesLocatorNode::compute(const MPlug &plug,
   MString &fileName = dataBlock.inputValue(mFileNameAttr).asString();
   MString &identifier = dataBlock.inputValue(mIdentifierAttr).asString();
 
-  AbcG::ICurves obj;
+  AbcG::ICurves &obj = mObj;
 
   // check if we have the file
   if (fileName != mFileName || identifier != mIdentifier) {
@@ -928,8 +923,7 @@ MStatus AlembicCurvesLocatorNode::compute(const MPlug &plug,
                                         mSchema.getNumSamples());
 
   // check if we have to do this at all
-  if (mNbCurves == 0 || mLastSampleInfo.floorIndex != sampleInfo.floorIndex ||
-      mLastSampleInfo.ceilIndex != sampleInfo.ceilIndex) {
+  {
     AbcG::ICurvesSchema::Sample sample;
     AbcG::ICurvesSchema::Sample sample2;
     mSchema.get(sample, sampleInfo.floorIndex);
@@ -1042,7 +1036,7 @@ MStatus AlembicCurvesLocatorNode::compute(const MPlug &plug,
   MDataHandle outSent = dataBlock.outputValue(mSentinelAttr);
   // increment, this tells the draw routine that the display list needs to be
   // regenerated
-  outSent.set((mSent + 1 % 10));
+  outSent.set((mSent + 1) % 10);
   dataBlock.setClean(mSentinelAttr);
 
   return MStatus::kSuccess;

@@ -38,6 +38,7 @@
 #define _Alembic_AbcCoreAbstract_ArraySampleKey_h_
 
 #include <Alembic/AbcCoreAbstract/Foundation.h>
+#include <functional>
 #include <Alembic/AbcCoreAbstract/DataType.h>
 
 namespace Alembic {

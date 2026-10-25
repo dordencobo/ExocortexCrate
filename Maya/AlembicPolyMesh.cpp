@@ -247,8 +247,12 @@ MStatus AlembicPolyMesh::Save(double time, unsigned int timeIndex,
       {
         ESS_PROFILE_SCOPE("AlembicPolyMesh::Save FaceSets FACESET_ attribute");
         MStringArray pluginsAttributes;
-        MGlobal::executeCommand("listAttr -ud " + node.name(),
-                                pluginsAttributes);  // only list attribute
+        const MStatus listStatus = MGlobal::executeCommand(
+            "listAttr -ud \"" + path.fullPathName() + "\"", pluginsAttributes);
+        if (!listStatus) {
+          return listStatus;
+        }
+        // only list attributes
         // created by plugins!
         // "FACESET_" are some of
         // them!
@@ -317,14 +321,14 @@ MStatus AlembicPolyMesh::Save(double time, unsigned int timeIndex,
         const unsigned int nbSets = sets.length();
         {
           const unsigned int nbIndices = indices.length();
-          const unsigned int reserve = nbIndices / nbSets;
+          const unsigned int reserve = nbSets ? nbIndices / nbSets : 0;
           for (unsigned int i = 0; i < nbSets; ++i) {
             allFaceSetVals.push_back(std::vector<Alembic::Util::int32_t>());
             allFaceSetVals.back().reserve(reserve);
           }
           for (unsigned int j = 0; j < nbIndices; ++j) {
             const int index = indices[j];
-            if (index >= 0) {
+            if (index >= 0 && static_cast<unsigned int>(index) < nbSets) {
               allFaceSetVals[indices[j]].push_back(j);
             }
           }
