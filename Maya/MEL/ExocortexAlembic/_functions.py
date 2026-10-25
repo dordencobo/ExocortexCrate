@@ -136,6 +136,9 @@ __gMainProgressBar = ""
 
 def progressBar_init(_max):
 	global __gMainProgressBar
+	__gMainProgressBar = ""
+	if cmds.about(batch=True):
+		return
 	try:
 		__gMainProgressBar = mel.eval('$tmp = $gMainProgressBar')
 		if __gMainProgressBar != "":

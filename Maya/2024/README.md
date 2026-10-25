@@ -54,10 +54,9 @@ AbcImport/AbcExport plugins, checks registration of all 12 Crate node types and
 12 commands, evaluates the time controller, and checks two load/unload cycles.
 No user scene is opened or saved.
 
-These checks do **not** validate Alembic file interchange, mesh attachment,
-Evaluation Manager, particles, dynamic topology or interactive Viewport 2.0.
-The old dependencies and deprecated Maya APIs remain; this is a build/load
-milestone, not a production-ready port.
+The load test alone does **not** validate Alembic file interchange. The old
+dependencies and deprecated Maya APIs remain; this is an experimental port,
+not a production-ready plugin.
 
 The duplicate-name export regression can be run separately:
 
@@ -68,3 +67,26 @@ The duplicate-name export regression can be run separately:
 It exports two static meshes with the same shape leaf name and verifies their
 geometry and explicit face sets. HDF5 is read with Crate; Ogawa is imported with
 Maya's native AbcImport. This does not exercise an animated production asset.
+
+## Animated mesh validation
+
+```powershell
+& 'C:/Program Files/Autodesk/Maya2024/bin/mayapy.exe' -B tests/maya/test_animated_mesh.py --plugin build/maya2024/stage/Module/plug-ins/MayaExocortexAlembic.mll
+```
+
+This suite verifies HDF5 and Ogawa export/import of a cube with animated
+transforms, vertex deformation, two UV sets, explicit face sets and a custom
+attribute. Geometry and attribute values are checked while scrubbing in DG,
+EM serial and EM parallel, including fractional frames. Imported scenes are
+also saved and reopened. This small scene does not establish general thread
+safety, Cached Playback support or correctness on production rigs.
+
+The suite also exercises attachment and switching an existing reader to a
+different archive identifier. Custom attributes retain Crate's floor-sample
+behavior between frames; geometry is interpolated. Attachment remains strictly
+by vertex index: it preserves destination connectivity and leaves vertices
+outside the cache's position array unchanged. Matching counts alone do not
+establish a correct correspondence, and there is no spatial transfer.
+
+Particles, cameras, dynamic topology and interactive Viewport 2.0 remain outside
+this validation milestone.
