@@ -9,3 +9,5 @@ _build/unix*
 _build/Unix*
 *~
 *.zip
+/.deps/
+/build/maya2024/

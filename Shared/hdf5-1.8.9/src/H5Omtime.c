@@ -221,6 +221,9 @@ H5O_mtime_decode(H5F_t UNUSED *f, hid_t UNUSED dxpl_id, H5O_t UNUSED *open_oh,
 #elif defined(H5_HAVE___TM_GMTOFF)
     /* Linux libc-4 */
     the_time += tm.__tm_gmtoff;
+#elif defined(H5_HAVE_TIMEZONE) && defined(_MSC_VER)
+    /* The Universal CRT exposes the Windows timezone value as _timezone. */
+    the_time -= _timezone - (tm.tm_isdst?3600:0);
 #elif defined(H5_HAVE_TIMEZONE)
     /* Linux libc-5 */
     the_time -= timezone - (tm.tm_isdst?3600:0);
