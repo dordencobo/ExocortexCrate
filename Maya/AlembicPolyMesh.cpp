@@ -321,14 +321,14 @@ MStatus AlembicPolyMesh::Save(double time, unsigned int timeIndex,
         const unsigned int nbSets = sets.length();
         {
           const unsigned int nbIndices = indices.length();
-          const unsigned int reserve = nbIndices / nbSets;
+          const unsigned int reserve = nbSets ? nbIndices / nbSets : 0;
           for (unsigned int i = 0; i < nbSets; ++i) {
             allFaceSetVals.push_back(std::vector<Alembic::Util::int32_t>());
             allFaceSetVals.back().reserve(reserve);
           }
           for (unsigned int j = 0; j < nbIndices; ++j) {
             const int index = indices[j];
-            if (index >= 0) {
+            if (index >= 0 && static_cast<unsigned int>(index) < nbSets) {
               allFaceSetVals[indices[j]].push_back(j);
             }
           }

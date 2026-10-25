@@ -110,6 +110,8 @@ def importCamera(name, identifier, jobInfo, parentXform=None, isConstant=False):
 		cmds.connectAttr(reader+".verticalFilmAperture", shape+".verticalFilmAperture")
 		cmds.connectAttr(reader+".horizontalFilmOffset", shape+".horizontalFilmOffset")
 		cmds.connectAttr(reader+".verticalFilmOffset", shape+".verticalFilmOffset")
+		cmds.connectAttr(reader+".nearClippingPlane", shape+".nearClipPlane")
+		cmds.connectAttr(reader+".farClippingPlane", shape+".farClipPlane")
 		cmds.connectAttr(reader+".fStop", shape+".fStop")
 		cmds.connectAttr(reader+".shutterAngle", shape+".shutterAngle")
 

@@ -17,7 +17,7 @@ void extractMeshInfo(T& schema, bool& isPointCache, bool& isTopoDyn)
     if (positionsProp.valid() && positionsProp.getValue()->size() > 0)
       isPointCache = true;
   }
-  else if (faceCountProp.isConstant()) {
+  else if (schema.getTopologyVariance() != AbcG::kHeterogenousTopology) {
     Alembic::Abc::Int32ArraySamplePtr faceCounts = faceCountProp.getValue();
     // the first is our preferred method, the second check here is Helge's
     // method that is now considered obsolete

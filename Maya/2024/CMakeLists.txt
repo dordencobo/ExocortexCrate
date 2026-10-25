@@ -119,6 +119,9 @@ set_target_properties(MayaExocortexAlembic PROPERTIES PREFIX "" SUFFIX ".mll")
 
 install(TARGETS MayaExocortexAlembic LIBRARY DESTINATION Module/plug-ins
     RUNTIME DESTINATION Module/plug-ins)
-install(DIRECTORY "${CRATE_ROOT}/Maya/MEL/" DESTINATION Module/scripts)
+install(DIRECTORY "${CRATE_ROOT}/Maya/MEL/" DESTINATION Module/scripts
+    PATTERN "__pycache__" EXCLUDE PATTERN "*.pyc" EXCLUDE)
 install(DIRECTORY "${CRATE_ROOT}/Maya/UI/" DESTINATION Module/ui)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Maya2024ExocortexAlembic.mod" DESTINATION .)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/README.md" DESTINATION . RENAME README-MAYA2024.md)
+install(FILES "${CRATE_ROOT}/LICENSE.txt" DESTINATION .)

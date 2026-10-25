@@ -54,9 +54,10 @@ AbcImport/AbcExport plugins, checks registration of all 12 Crate node types and
 12 commands, evaluates the time controller, and checks two load/unload cycles.
 No user scene is opened or saved.
 
-The load test alone does **not** validate Alembic file interchange. The old
-dependencies and deprecated Maya APIs remain; this is an experimental port,
-not a production-ready plugin.
+The load test alone does **not** validate Alembic file interchange. Run the
+round-trip and viewport suites below as well. Old dependencies and some
+deprecated Maya APIs remain; passing these fixtures does not establish
+production readiness.
 
 The duplicate-name export regression can be run separately:
 
@@ -88,5 +89,70 @@ by vertex index: it preserves destination connectivity and leaves vertices
 outside the cache's position array unchanged. Matching counts alone do not
 establish a correct correspondence, and there is no spatial transfer.
 
-Particles, cameras, dynamic topology and interactive Viewport 2.0 remain outside
-this validation milestone.
+## Cameras, curves, particles and changing topology
+
+```powershell
+& 'C:/Program Files/Autodesk/Maya2024/bin/mayapy.exe' -B tests/maya/test_feature_roundtrip.py --plugin build/maya2024/stage/Module/plug-ins/MayaExocortexAlembic.mll
+& 'C:/Program Files/Autodesk/Maya2024/bin/mayapy.exe' -B tests/maya/test_viewport2.py --plugin build/maya2024/stage/Module/plug-ins/MayaExocortexAlembic.mll
+```
+
+The feature suite covers 11 animated camera channels (including vertical film
+offset, f-stop and clipping planes), camera attachment, linear/cubic curves,
+curve attachment at fractional frames, locator bounds, changing vertex counts,
+changing connectivity with constant face counts, static and emitting particles,
+reattachment of particles at the same frame, and a legacy subdivision surface
+exported from a converted polygon cage.
+Camera export retains the existing film-fit baking into aperture values.
+Camera and curve scrubbing is checked in DG, EM serial and EM parallel.
+
+The curve locator now has a native VP2 draw override. Its draw data owns a
+snapshot of positions, indices and colors. The viewport test uses hardware
+rendering and compares pixels for hidden, visible and animated states; a GPU
+and working OpenGL driver are required. This validates the OpenGL path on this
+machine, not DirectX 11 or every interactive viewport configuration.
+
+## Evaluation policy and remaining limits
+
+Crate readers share mutable archive state. Maya 2024 readers/deformers/locators
+declare `kGloballySerial`; the particle emitter declares `kUntrusted` because
+it also modifies its connected Maya particle system. EM parallel can remain
+enabled for the scene, but these nodes do not promise parallel execution.
+Cached Playback is explicitly disabled for these nodes. Full concurrency and
+Cached Playback require a separate redesign of archive ownership and outputs.
+
+The Maya scripts use Python 3 directly, without Boost.Python. The separate
+historical `Python/` extension is not built by this Maya target. VS2022 v143
+is the toolchain tested here; VS2019 has not been validated.
+
+The tests do not certify large production scenes, particle instancing and all
+per-particle attributes, grouped/multiple curves, subdivision creases, archive
+layers or malformed/untrusted Alembic files. Particle IDs are not restored to
+Maya's native particle IDs; positions are assigned by sample-array order.
+The old Alembic/HDF5 dependencies remain statically linked; coexistence with
+native Maya Alembic passes the load test, but does not prove compatibility with
+every third-party Alembic plugin.
+
+## Run the complete acceptance suite
+
+```powershell
+./tests/maya/run_maya2024_tests.ps1 -Plugin build/maya2024/stage/Module/plug-ins/MayaExocortexAlembic.mll
+```
+
+This runs 27 tests in six independent mayapy processes and writes logs under
+`build/maya2024/test-results`. It uses an isolated Maya profile and leaves any
+interactive Maya session alone.
+
+## Load the packaged module in Maya
+
+Extract the package to a permanent folder. Add the folder containing
+`Maya2024ExocortexAlembic.mod` to `MAYA_MODULE_PATH` in Maya 2024's `Maya.env`,
+preserving existing entries. For the local final stage, for example:
+
+```text
+MAYA_MODULE_PATH=C:/Users/Usuario/repo/exocortex/ExocortexCrate-maya2024/build/maya2024/stage-complete
+```
+
+Restart Maya, then enable `MayaExocortexAlembic.mll` in Plug-in Manager. The
+Alembic menu is registered on load. Restart before switching from an older
+build: a loaded plugin DLL must not be overwritten or replaced in a live scene.
+The package includes the original license; keep it with redistributed copies.

@@ -123,7 +123,7 @@ def alembicPolyMeshToSubdiv(mesh=None):
 		cmds.connectAttr(poly+".outSubdiv", sub+".create")
 		cmds.connectAttr(mesh+".outMesh", poly+".inMesh")
 
-		cmd.setAttr(sub+".dispResolution", 3);
+		cmds.setAttr(sub+".dispResolution", 3);
 	except Exception as ex:
 		return str(ex.args)
 	return ""

@@ -238,7 +238,7 @@ MStatus AlembicWriteJob::PreProcess()
         }
       }
 
-      PreProcessStackElement &sElement = sceneStack.back();
+      PreProcessStackElement sElement = sceneStack.back();
       SceneNodePtr eNode = sElement.eNode;
       sceneStack.pop_back();
 

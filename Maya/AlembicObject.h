@@ -2,6 +2,19 @@
 #define _ALEMBIC_OBJECT_H_
 
 #include "CommonSceneGraph.h"
+#if MAYA_API_VERSION >= 20240000
+#include <maya/MNodeCacheDisablingInfo.h>
+#define CRATE_EVALUATION_POLICY(policy) \
+  SchedulingType schedulingType() const override { return policy; } \
+  void getCacheSetup(const MEvaluationNode &, MNodeCacheDisablingInfo &info, \
+                    MNodeCacheSetupInfo &, MObjectArray &) const override { \
+    info.setCacheDisabled(true); \
+    info.setReason("Crate readers maintain external archive state outside the Maya datablock."); \
+    info.setMitigation("Use ordinary playback; Cached Playback is disabled for Crate nodes."); \
+  }
+#else
+#define CRATE_EVALUATION_POLICY(policy)
+#endif
 
 class AlembicWriteJob;
 class AlembicObject;
@@ -46,6 +59,7 @@ class AlembicObjectNode : public MPxNode {
  public:
   AlembicObjectNode();
   virtual ~AlembicObjectNode();
+  CRATE_EVALUATION_POLICY(kGloballySerial)
   virtual void PreDestruction() = 0;
 
  protected:
@@ -56,6 +70,7 @@ class AlembicObjectDeformNode : public MPxDeformerNode {
  public:
   AlembicObjectDeformNode();
   virtual ~AlembicObjectDeformNode();
+  CRATE_EVALUATION_POLICY(kGloballySerial)
   virtual void PreDestruction() = 0;
 
  protected:
@@ -66,6 +81,8 @@ class AlembicObjectEmitterNode : public MPxEmitterNode {
  public:
   AlembicObjectEmitterNode();
   virtual ~AlembicObjectEmitterNode();
+  // The emitter also writes directly into its connected Maya particle system.
+  CRATE_EVALUATION_POLICY(kUntrusted)
   virtual void PreDestruction() = 0;
 
  protected:
@@ -76,6 +93,7 @@ class AlembicObjectLocatorNode : public MPxLocatorNode {
  public:
   AlembicObjectLocatorNode();
   virtual ~AlembicObjectLocatorNode();
+  CRATE_EVALUATION_POLICY(kGloballySerial)
   virtual void PreDestruction() = 0;
 
  protected:
@@ -83,6 +101,7 @@ class AlembicObjectLocatorNode : public MPxLocatorNode {
 };
 
 void preDestructAllNodes();
+#undef CRATE_EVALUATION_POLICY
 
 #include "AlembicWriteJob.h"
 

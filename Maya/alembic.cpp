@@ -21,6 +21,12 @@
 #include <maya/MPlug.h>
 #include "AlembicValidateNameCmd.h"
 #include "MetaData.h"
+#if MAYA_API_VERSION >= 20240000
+#include "AlembicCurvesDrawOverride.h"
+#include <maya/MDrawRegistry.h>
+static const MString curvesDrawClassification("drawdb/geometry/ExocortexAlembicCurvesLocator");
+static const MString curvesDrawRegistrant("ExocortexCrateCurves");
+#endif
 
 // IDs issues for this plugin are:
 // 0x0011A100 - 0x0011A1FF
@@ -170,7 +176,17 @@ EC_EXPORT MStatus initializePlugin(MObject obj)
   status = plugin.registerNode(
       "ExocortexAlembicCurvesLocator", mCurvesLocatorNodeId,
       &AlembicCurvesLocatorNode::creator, &AlembicCurvesLocatorNode::initialize,
-      MPxNode::kLocatorNode);
+      MPxNode::kLocatorNode
+#if MAYA_API_VERSION >= 20240000
+      , &curvesDrawClassification
+#endif
+      );
+#if MAYA_API_VERSION >= 20240000
+  if (!status) return status;
+  status = MHWRender::MDrawRegistry::registerDrawOverrideCreator(
+      curvesDrawClassification, curvesDrawRegistrant, AlembicCurvesDrawOverride::creator);
+  if (!status) return status;
+#endif
 
   const char *readerTypes[] = {
       "ExocortexAlembicXform", "ExocortexAlembicCamera",
@@ -262,6 +278,11 @@ EC_EXPORT MStatus uninitializePlugin(MObject obj)
   status = plugin.deregisterNode(mPointsNodeId);
   status = plugin.deregisterNode(mCurvesNodeId);
   status = plugin.deregisterNode(mCurvesDeformNodeId);
+#if MAYA_API_VERSION >= 20240000
+  status = MHWRender::MDrawRegistry::deregisterDrawOverrideCreator(
+      curvesDrawClassification, curvesDrawRegistrant);
+  if (!status) return status;
+#endif
   status = plugin.deregisterNode(mCurvesLocatorNodeId);
 
   return status;

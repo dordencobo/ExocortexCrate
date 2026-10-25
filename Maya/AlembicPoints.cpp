@@ -955,13 +955,7 @@ MStatus AlembicPointsNode::compute(const MPlug &plug, MDataBlock &dataBlock)
   SampleInfo sampleInfo = getSampleInfo(inputTime, mSchema.getTimeSampling(),
                                         mSchema.getNumSamples());
 
-  // check if we have to do this at all
-  if (mLastInputTime == inputTime &&
-      mLastSampleInfo.floorIndex == sampleInfo.floorIndex &&
-      mLastSampleInfo.ceilIndex == sampleInfo.ceilIndex) {
-    return MStatus::kSuccess;
-  }
-
+  // A dirty output can reflect a new archive at the same frame.
   mLastInputTime = inputTime;
   mLastSampleInfo = sampleInfo;
 

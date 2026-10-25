@@ -88,6 +88,8 @@ def attachCamera(name, identifier, jobInfo, isConstant=False):
 		cmds.connectAttr(reader+".verticalFilmAperture", name+".verticalFilmAperture")
 		cmds.connectAttr(reader+".horizontalFilmOffset", name+".horizontalFilmOffset")
 		cmds.connectAttr(reader+".verticalFilmOffset", name+".verticalFilmOffset")
+		cmds.connectAttr(reader+".nearClippingPlane", name+".nearClipPlane")
+		cmds.connectAttr(reader+".farClippingPlane", name+".farClipPlane")
 		cmds.connectAttr(reader+".fStop", name+".fStop")
 		cmds.connectAttr(reader+".shutterAngle", name+".shutterAngle")
 
@@ -113,19 +115,7 @@ def attachCurves(name, identifier, jobInfo, isConstant=False):
 		cmds.setAttr(newDform+".identifier", identifier, type="string")
 		attachTimeAndFile(newDform, jobInfo, isConstant, identifier)
 
-		# get curObj new "output" attribute connection
-		conX = cmds.listConnections(name+".create", d=False, type="ExocortexAlembicCurvesDeform")
-		if conX:
-			curObj = conX[0]
-			originalCur = cmds.connectionInfo(curObj+".output", sfd=True).split('.')[0]
-
-			cmds.delete(curObj)
-			curObj = cmds.createNode("ExocortexAlembicCurves")
-			attachTimeAndFile(curObj, jobInfo, isConstant, identifier)
-
-			cmds.connectAttr(curObj+".outCurve", originalCur+".create")
-			cmds.connectAttr(jobInfo.filenode+".outFileName", curObj+".fileName")
-			cmds.setAttr(curObj+".identifier", identifier, type="string")
+		curObj = newDform
 	except:
 		return ["!", traceback.format_exc()]
 	finally:
@@ -139,6 +129,8 @@ def attachPoints(name, identifier, jobInfo, isConstant=False):
 		if conX:
 			ptsObj = conX[0]
 			attachTimeAndFile(ptsObj, jobInfo, isConstant, identifier)
+			# Particle queries can reuse the current simulation state at the same frame.
+			cmds.dgeval(ptsObj+".output[0]")
 			return [ptsObj]
 
 		reader = cmds.createNode("ExocortexAlembicPoints")
